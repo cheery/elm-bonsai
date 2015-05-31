@@ -16,6 +16,32 @@ def key_input(keycode):
         return False
     return Input(_key_intro_, _key_input_)
 
+def mouse_position():
+    def _mouse_intro_(reaction):
+        return (0, 0)
+    def _mouse_input_(cell, event):
+        if event.type == pygame.MOUSEMOTION:
+            cell.value = event.pos
+            return True
+        return False
+    return Input(_mouse_intro_, _mouse_input_)
+mouse_position = mouse_position()
+
+def mouse_button(*buttons):
+    def _mouse_intro_(reaction):
+        return False
+    def _mouse_input_(cell, event):
+        if (event.type == pygame.MOUSEBUTTONDOWN
+            and event.button in buttons):
+            cell.value = True
+            return True
+        if (event.type == pygame.MOUSEBUTTONUP
+            and event.button in buttons):
+            cell.value = False
+            return True
+        return False
+    return Input(_mouse_intro_, _mouse_input_)
+
 class Layer(object):
     def __init__(self):
         self.elements = []
@@ -108,3 +134,13 @@ def keyboard_axis(neg, pos):
     def _keyboard_axis_(neg, pos):
         return float(pos - neg)
     return lift(_keyboard_axis_, neg, pos)
+
+def pick(control, sequence):
+    def _pick_(control, sequence):
+        return sequence[control]
+    return lift(_pick_, control, sequence)
+
+def bundle(result, *rest):
+    def _bundle_(result, *rest):
+        return result
+    return lift(_bundle_, result, *rest)

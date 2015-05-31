@@ -3,13 +3,33 @@ from gamebonsai import *
 import pygame, time, sys, math
 import operator
 
-left = key_input(pygame.K_LEFT)
-right = key_input(pygame.K_RIGHT)
-up = key_input(pygame.K_UP)
-down = key_input(pygame.K_DOWN)
+def pick(control, sequence):
+    def _pick_(control, sequence):
+        return sequence[control]
+    return lift(_pick_, control, sequence)
+
+def bundle(result, *rest):
+    def _bundle_(result, *rest):
+        return result
+    return lift(_bundle_, result, *rest)
+
+def simple_button(x, y, width, height, click=False):
+    def _hover_(x, y, width, height, (px, py)):
+        return 0 <= px - x < width and 0 <= py - y < height
+    hover = lift(_hover_, x, y, width, height, mouse_position)
+    click = lift(operator.or_, click, lift(operator.and_, hover, mouse_button(1)))
+    color = pick(click, [(155, 155, 155), (200, 200, 200)])
+    visual = layer.show(Rectangle, x, y, width, height, color)
+    return bundle(click, visual)
 
 def init(signals, layer):
     font = pygame.font.Font(None, 32)
+
+    # Lets make a button
+    left = simple_button(1*32, 2*32, 32, 32, key_input(pygame.K_LEFT))
+    right = simple_button(3*32, 2*32, 32, 32, key_input(pygame.K_RIGHT))
+    up = simple_button(2*32, 1*32, 32, 32, key_input(pygame.K_UP))
+    down = simple_button(2*32, 3*32, 32, 32, key_input(pygame.K_DOWN))
 
     # Control signals
     xc = lift(operator.mul, keyboard_axis(left, right), 50)
