@@ -10,6 +10,8 @@ class ReactionGroup(object):
 
     def discard(self):
         self.active = False
+        for group in self.groups:
+            group.discard() 
 
     def spawn(self, signal):
         assert self.active, "inactive group"
@@ -62,6 +64,8 @@ class Deployer(object):
         self.visit = {}
 
     def one(self, node):
+        if not isinstance(node, Signal):
+            node = constant(node)
         if node in self.visit:
             return self.visit[node]
         self.visit[node] = cell = node.deploy(self)
@@ -75,6 +79,13 @@ class Cell(object):
     def __init__(self, init):
         self.changed = False
         self.value = init
+
+class ConstantCell(Cell):
+    def __init__(self, init):
+        Cell.__init__(self, init)
+
+    def update(self, event):
+        pass
 
 class InputCell(Cell):
     def __init__(self, init, func):
@@ -166,7 +177,10 @@ class SampleOnCell(Cell):
             self.value = self.signal.value
         self.changed = self.control.changed
 
-class Input(object):
+class Signal(object):
+    pass
+
+class Input(Signal):
     def __init__(self, intro, func):
         self.intro = intro
         self.func = func
@@ -174,7 +188,7 @@ class Input(object):
     def deploy(self, deploy):
         return InputCell(self.intro(deploy.reaction), self.func)
 
-class foldp(object):
+class foldp(Signal):
     def __init__(self, func, init, *args):
         self.func = func
         self.init = init
@@ -186,7 +200,7 @@ class foldp(object):
             self.func,
             deploy.many(self.args))
 
-class lift(object):
+class lift(Signal):
     def __init__(self, func, *args):
         self.func = func
         self.args = args
@@ -196,23 +210,25 @@ class lift(object):
             self.func,
             deploy.many(self.args))
 
-class liftfoldp(object):
+class liftfoldp(Signal):
     def __init__(self, intro, func, *args):
         self.intro = intro
         self.func = func
         self.args = args
 
     def deploy(self, deploy):
-        init = self.intro(deploy.reaction, *args)
         args = deploy.many(self.args)
+        init = self.intro(deploy.reaction, *(arg.value for arg in args))
         return FoldCell(init, self.func, args)
 
-def constant(value):
-    def _constant_():
-        return value
-    return lift(_constant_)
+class constant(Signal):
+    def __init__(self, value):
+        self.value = value
 
-class TimeSignal(object):
+    def deploy(self, deploy):
+        return ConstantCell(self.value)
+
+class TimeSignal(Signal):
     def __init__(self, cls, *args):
         self.cls = cls
         self.args = args
@@ -229,7 +245,7 @@ def every(step):
 def until(limit):
     return TimeSignal(UntilCell, limit)
 
-class sample_on(object):
+class sample_on(Signal):
     def __init__(self, control, signal):
         self.control = control
         self.signal = signal

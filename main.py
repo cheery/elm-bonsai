@@ -1,41 +1,28 @@
 from elmbonsai import *
 from gamebonsai import *
 import pygame, time, sys, math
+import operator
 
 left = key_input(pygame.K_LEFT)
 right = key_input(pygame.K_RIGHT)
+up = key_input(pygame.K_UP)
+down = key_input(pygame.K_DOWN)
 
-rect_t = [0]
-rect = [100, 100, 10, 10]
-color = [0, 128, 0]
+def init(signals, layer):
+    font = pygame.font.Font(None, 32)
 
-def recolor(r, g, b):
-    color[0] = 255*abs(r)
-    color[1] = 255*abs(g)
-    color[2] = 255*abs(b)
-    return (r, g, b)
-
-def keyboard_axis(neg, pos):
-    def _keyboard_axis_(neg, pos):
-        return float(pos - neg)
-    return lift(_keyboard_axis_, neg, pos)
-
-def accum(control, t, v):
-    rect[0] += control * (t - rect_t[0]) * v
-    rect_t[0] = t
-    if not 0 < rect[0] < 1024:
-        raise StopIteration()
-
-def init(signals):
-    signals.spawn(lift(accum, keyboard_axis(left, right), now, constant(500)))
-
-    s = lift(math.sin, now)
-    c = lift(math.cos, now)
-    #signals.spawn(lift(recolor, s, c, s))
-
-def animation_frame(screen):
-    screen.fill(color)
-    screen.fill((255, 255, 255), rect)
+    # Control signals
+    xc = lift(operator.mul, keyboard_axis(left, right), 50)
+    yc = lift(operator.mul, keyboard_axis(up, down), 50)
+    # Velocity signals
+    xv = accum(0, now, xc)
+    yv = accum(0, now, yc)
+    # Position signals
+    x = accum(50.0, now, xv)
+    y = accum(50.0, now, yv)
+    # Moving text, with its velocity printed out.
+    v = layer.show(Text, font, lift("{:0.2f},{:0.2f}".format, xv, yv), x, y)
+    signals.spawn(v)
 
 def dispatch(signals, event):
     if event.type == pygame.QUIT:
@@ -46,9 +33,11 @@ def dispatch(signals, event):
 
 if __name__=='__main__':
     pygame.display.init()
+    pygame.font.init()
     screen = pygame.display.set_mode((1024, 768))
     signals = ReactionGroup(time.time())
-    init(signals)
+    layer = Layer()
+    init(signals, layer)
     while 1:
         for event in pygame.event.get():
             dispatch(signals, event)
@@ -56,5 +45,6 @@ if __name__=='__main__':
         signals.update(Tick(Tick, time.time()))
         if not signals.active:
             sys.exit(0)
-        animation_frame(screen)
+        screen.fill((0, 0, 0))
+        layer.update(screen)
         pygame.display.flip()
