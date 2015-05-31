@@ -49,12 +49,15 @@ class Reaction(object):
             return False
         if event.type == Tick:
             self.time = event.time
-        self.active = False
-        for cell in self.cells:
-            cell.update(event)
-        else:
-            self.active = True
+        try:
+            for cell in self.cells:
+                cell.update(event)
+        except Discard as discard:
+            self.discard()
         return self.active
+
+class Discard(Exception):
+    pass
 
 class Deployer(object):
     def __init__(self, time, cells):

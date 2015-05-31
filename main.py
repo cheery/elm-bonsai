@@ -1,17 +1,7 @@
 from elmbonsai import *
 from gamebonsai import *
-import pygame, time, sys, math
+import pygame, time, sys, math, random
 import operator
-
-def pick(control, sequence):
-    def _pick_(control, sequence):
-        return sequence[control]
-    return lift(_pick_, control, sequence)
-
-def bundle(result, *rest):
-    def _bundle_(result, *rest):
-        return result
-    return lift(_bundle_, result, *rest)
 
 def simple_button(x, y, width, height, click=False):
     def _hover_(x, y, width, height, (px, py)):
@@ -21,6 +11,28 @@ def simple_button(x, y, width, height, click=False):
     color = pick(click, [(155, 155, 155), (200, 200, 200)])
     visual = layer.show(Rectangle, x, y, width, height, color)
     return bundle(click, visual)
+
+def key_spawner(signals, layer, font):
+    def _init_spawn_(reaction):
+        return None
+    def _spawn_input_(cell, event):
+        if event.type == pygame.KEYDOWN:
+            def _keep_only_(cond):
+                if not cond:
+                    raise Discard()
+            signals.spawn(bundle(
+                lift(_keep_only_, key_input(event.key)),
+                layer.show(Text,
+                    font,
+                    lift("{:0.2f} {}".format, after, pygame.key.name(event.key)),
+                    random.randint(0, 1024),
+                    random.randint(0, 768))))
+            if event.key == pygame.K_F4:
+                signals.discard()
+    return bundle(
+        Input(_init_spawn_, _spawn_input_),
+        layer.show(Text, font, "You may spawn nibs. Press F4 to stop", 10, 10))
+
 
 def init(signals, layer):
     font = pygame.font.Font(None, 32)
@@ -43,6 +55,10 @@ def init(signals, layer):
     # Moving text, with its velocity printed out.
     v = layer.show(Text, font, lift("{:0.2f},{:0.2f}".format, xv, yv), x, y)
     signals.spawn(v)
+
+
+    spawner = signals.group()
+    spawner.spawn(key_spawner(spawner, layer, font))
 
 def dispatch(signals, event):
     if event.type == pygame.QUIT:

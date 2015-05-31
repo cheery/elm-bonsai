@@ -3,7 +3,7 @@ import pygame
 
 def key_input(keycode):
     def _key_intro_(reaction):
-        return False
+        return pygame.key.get_pressed()[keycode]
     def _key_input_(cell, event):
         if (event.type == pygame.KEYDOWN
             and event.key == keycode):
@@ -56,7 +56,6 @@ class Layer(object):
 
     def show(self, cls, *args):
         def _intro_(reaction, *args):
-            print args
             return self.add(cls, reaction, *args)
         def _foldp_(element, *args):
             element.adjust(*args)
