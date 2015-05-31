@@ -67,10 +67,12 @@ class Deployer(object):
         self.visit = {}
 
     def one(self, node):
-        if not isinstance(node, Signal):
-            node = constant(node)
         if node in self.visit:
             return self.visit[node]
+        if not isinstance(node, Signal):
+            self.visit[node] = cell = ConstantCell(node)
+            self.cells.append(cell)
+            return cell
         self.visit[node] = cell = node.deploy(self)
         self.cells.append(cell)
         return cell
@@ -223,13 +225,6 @@ class liftfoldp(Signal):
         args = deploy.many(self.args)
         init = self.intro(deploy.reaction, *(arg.value for arg in args))
         return FoldCell(init, self.func, args)
-
-class constant(Signal):
-    def __init__(self, value):
-        self.value = value
-
-    def deploy(self, deploy):
-        return ConstantCell(self.value)
 
 class TimeSignal(Signal):
     def __init__(self, cls, *args):

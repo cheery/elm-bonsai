@@ -8,7 +8,7 @@ def simple_button(x, y, width, height, click=False):
         return 0 <= px - x < width and 0 <= py - y < height
     hover = lift(_hover_, x, y, width, height, mouse_position)
     click = lift(operator.or_, click, lift(operator.and_, hover, mouse_button(1)))
-    color = pick(click, [(155, 155, 155), (200, 200, 200)])
+    color = pick(click, ((155, 155, 155), (200, 200, 200)))
     visual = layer.show(Rectangle, x, y, width, height, color)
     return bundle(click, visual)
 
