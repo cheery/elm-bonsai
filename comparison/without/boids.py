@@ -1,5 +1,6 @@
-from math import sqrt
+from math import sqrt, exp
 from pygame import gfxdraw
+from random import random
 import pygame, time, sys
 
 class vec2(object):
@@ -56,7 +57,7 @@ for x in range(50):
     robot.position = vec2(x*10, 20 + x*5)
     robots.append(robot)
 
-maxspeed = 200
+maxspeed = 150
 maxforce = 200
 
 def draw(screen):
@@ -75,7 +76,7 @@ def update(dt):
         for other in robots:
             if other is not robot:
                 d = (other.position - robot.position).magnitude
-                if d < 50:
+                if d < 40:
                     others.append((other, d))
         # separation
         steer = vec2(0, 0)
@@ -84,12 +85,12 @@ def update(dt):
         for other, d in others:
             if d < desired:
                 delta = robot.position - other.position
-                steer = delta.normal / d
+                steer += delta / d
                 count += 1
         if count > 0:
             steer /= count
-        steer = (steer.normal * maxspeed) - robot.velocity
-        robot.acceleration += steer.limit(maxforce) * 1.5
+            steer = (steer.normal * maxspeed) - robot.velocity
+            robot.acceleration += steer.limit(maxforce) * 2.5
         # stay on screen
         if robot.position.x < 0:
             robot.acceleration.x += maxforce * 10
@@ -99,6 +100,7 @@ def update(dt):
             robot.acceleration.y += maxforce * 10
         if robot.position.y > height:
             robot.acceleration.y -= maxforce * 10
+
         # align
         velo = robot.velocity
         for other, d in others:
@@ -114,17 +116,18 @@ def update(dt):
         center /= len(others) + 1
         robot.acceleration += seek(robot, center)
 
-        
-
     for robot in robots:
         robot.velocity += robot.acceleration * dt
         robot.position += robot.velocity * dt
         robot.acceleration = vec2(0, 0)
 
-def seek(robot, target):
-    desired = (target - robot.position).normal * maxspeed
+def seek(robot, target, radius=10.0):
+    delta = target - robot.position
+    magnitude = delta.magnitude
+    desired = delta / magnitude if magnitude > 0 else delta
     steer = desired - robot.velocity
-    return steer.limit(maxforce)
+    strength = min(1.0, magnitude / radius)
+    return steer.limit(maxforce) * strength
 
 fps = 60
 frameskip = 2
